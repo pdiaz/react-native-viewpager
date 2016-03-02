@@ -169,6 +169,7 @@ var ViewPager = React.createClass({
       return
     }
 
+    var step = pageNumber - this.state.currentPage;
     this.movePage(step);
   },
 
