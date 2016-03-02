@@ -40,6 +40,7 @@ var ViewPager = React.createClass({
     autoPlay: PropTypes.bool,
     animation: PropTypes.func,
     currentPage : PropTypes.number,
+    hasTouch : PropTypes.func,
   },
 
   fling: false,
@@ -69,7 +70,7 @@ var ViewPager = React.createClass({
   },
 
   componentWillMount() {
-    this.childIndex = 0;
+    this.childIndex = this.state.currentPage===0?0:1;
 
     var release = (e, gestureState) => {
       var relativeGestureDistance = gestureState.dx / deviceWidth,
@@ -77,9 +78,9 @@ var ViewPager = React.createClass({
           vx = gestureState.vx;
 
       var step = 0;
-      if (relativeGestureDistance < -0.5 || (relativeGestureDistance < 0 && vx <= 0.5)) {
+      if (relativeGestureDistance < -0.2 || (relativeGestureDistance < 0 && vx <= -0.5)) {
         step = 1;
-      } else if (relativeGestureDistance > 0.5 || (relativeGestureDistance > 0 && vx >= 0.5)) {
+      } else if (relativeGestureDistance > 0.2 || (relativeGestureDistance > 0 && vx >= 0.5)) {
         step = -1;
       }
 
@@ -168,7 +169,6 @@ var ViewPager = React.createClass({
       return
     }
 
-    var step = pageNumber - this.state.currentPage;
     this.movePage(step);
   },
 
@@ -289,35 +289,39 @@ var ViewPager = React.createClass({
       inputRange: [0, 1], outputRange: [0, -viewWidth]
     });
 
-  return (
-      <View style={{flex: 1}}
-        onLayout={(event) => {
-            // console.log('ViewPager.onLayout()');
-            var viewWidth = event.nativeEvent.layout.width;
-            if (!viewWidth || this.state.viewWidth === viewWidth) {
-              return;
-            }
-            this.setState({
-              currentPage: this.state.currentPage,
-              viewWidth: viewWidth,
-            });
-          }}
-        >
+    return (
+        <View style={{flex: 1}}
+          onLayout={(event) => {
+              // console.log('ViewPager.onLayout()');
+              var viewWidth = event.nativeEvent.layout.width;
+              if (!viewWidth || this.state.viewWidth === viewWidth) {
+                return;
+              }
+              this.setState({
+                currentPage: this.state.currentPage,
+                viewWidth: viewWidth,
+              });
+            }}
+          >
 
-        <Animated.View style={[sceneContainerStyle, {transform: [{translateX}]}]}
-          {...this._panResponder.panHandlers}>
-          {bodyComponents}
-        </Animated.View>
+          <Animated.View style={[sceneContainerStyle, {transform: [{translateX}]}]}
+            {...this._panResponder.panHandlers}>
+            <View
+              style = {sceneContainerStyle}
+            >
+              {bodyComponents}
+            </View>
+          </Animated.View>
 
-        {this.renderPageIndicator({goToPage: this.goToPage,
-                            pageCount: pageIDs.length,
-                            activePage: this.state.currentPage,
-                            scrollValue: this.state.scrollValue,
-                            scrollOffset: this.childIndex,
-                          })}
-      </View>
-    );
-  }
+          {this.renderPageIndicator({goToPage: this.goToPage,
+                              pageCount: pageIDs.length,
+                              activePage: this.state.currentPage,
+                              scrollValue: this.state.scrollValue,
+                              scrollOffset: this.childIndex,
+                            })}
+        </View>
+      );
+    }
 });
 
 var styles = StyleSheet.create({
