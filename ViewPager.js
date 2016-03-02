@@ -39,6 +39,7 @@ var ViewPager = React.createClass({
     locked: PropTypes.bool,
     autoPlay: PropTypes.bool,
     animation: PropTypes.func,
+    currentPage : PropTypes.number,
   },
 
   fling: false,
@@ -47,6 +48,7 @@ var ViewPager = React.createClass({
     return {
       isLoop: false,
       locked: false,
+      currentPage : 0,
       animation: function(animate, toValue, gs) {
         return Animated.spring(animate,
           {
@@ -60,9 +62,9 @@ var ViewPager = React.createClass({
 
   getInitialState() {
     return {
-      currentPage: 0,
+      currentPage: this.props.currentPage,
       viewWidth: 0,
-      scrollValue: new Animated.Value(0)
+      scrollValue: new Animated.Value(this.props.currentPage===0?0:1)
     };
   },
 
@@ -287,7 +289,7 @@ var ViewPager = React.createClass({
       inputRange: [0, 1], outputRange: [0, -viewWidth]
     });
 
-    return (
+  return (
       <View style={{flex: 1}}
         onLayout={(event) => {
             // console.log('ViewPager.onLayout()');
