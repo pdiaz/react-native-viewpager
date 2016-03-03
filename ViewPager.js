@@ -31,11 +31,10 @@ const propTypes = {
   isLoop : PropTypes.bool,
   locked : PropTypes.bool,
   autoPlay : PropTypes.bool,
-  animation : PropTypes.func,
+  animation : PropTypes.func, // only work when nativeRender = false
   currentPage : PropTypes.number,
-  hasTouch : PropTypes.func,
-  //cacheNum : PropTypes.number,
-  nativeRender : PropTypes.bool,
+  cacheNum : PropTypes.number,
+  nativeRender : PropTypes.bool, // if true ios use ScrollView, android use ViewPagerAndroid
 }
 
 const defaultProps = {
@@ -43,7 +42,7 @@ const defaultProps = {
   locked: false,
   currentPage: 0,
   nativeRender : false,
-  //cacheNum : 2,
+  cacheNum : 1,
   animation: function (animate, toValue) {
     return Animated.spring(animate,
       {
@@ -66,11 +65,9 @@ export default class ViewPager extends Component
     }
   }
 
-  fling= false
+  fling = false
 
   componentWillMount() {
-
-    this.childIndex = this.state.currentPage === 0 ? 0 : 1;
 
     var release = (e, gestureState) => {
       const  relativeGestureDistance = gestureState.dx / deviceWidth
@@ -89,7 +86,7 @@ export default class ViewPager extends Component
     }
 
     this._panResponder = PanResponder.create({
-      // Claim responder if it's a horizontal pan
+
       onMoveShouldSetPanResponder: (e, gestureState) => {
         if (Math.abs(gestureState.dx) > Math.abs(gestureState.dy)) {
           if (/* (gestureState.moveX <= this.props.edgeHitWidth ||
@@ -101,11 +98,9 @@ export default class ViewPager extends Component
         }
       },
 
-      // Touch is released, scroll to the one that you're closest to
       onPanResponderRelease: release,
       onPanResponderTerminate: release,
 
-      // Dragging, move the view with the touch
       onPanResponderMove: (e, gestureState) => {
         var dx = gestureState.dx;
         var offsetX = -dx / this.state.viewWidth + this.childIndex;
@@ -116,11 +111,7 @@ export default class ViewPager extends Component
       },
     });
 
-    const pageCount = this._getPageCount()
-    if (this.props.isLoop && pageCount > 1) {
-      this.childIndex = 1;
-      this.state.scrollValue.setValue(1);
-    }
+    this._updateChildIndex();
   }
 
   componentDidMount()
@@ -137,26 +128,15 @@ export default class ViewPager extends Component
 
     if (nextProps.autoPlay && pageCount > 1) {
       this._startAutoPlay();
-    } else {
+    }
+    else {
       if (this._autoPlayer) {
         clearInterval(this._autoPlayer);
         this._autoPlayer = null;
       }
     }
 
-    var maxPage = pageCount - 1;
-    var constrainedPage = Math.max(0, Math.min(this.state.currentPage, maxPage));
-    this.setState({
-      currentPage: constrainedPage,
-    });
-
-    if (constrainedPage > 0 || (nextProps.isLoop && pageCount > 1)) {
-      this.childIndex = 1
-    }
-    else {
-      this.childIndex = 0
-    }
-    this.state.scrollValue.setValue(this.childIndex);
+    this._updateChildIndex(nextProps);
   }
 
   _getPageCount() {
@@ -187,26 +167,50 @@ export default class ViewPager extends Component
     this.movePage(step);
   }
 
-  movePage(step, animated)
-  {
-    var pageCount = this._getPageCount()
-    var pageNumber = this.state.currentPage + step;
-
-    if (this.props.isLoop && pageCount > 1) {
-      pageNumber = (pageNumber + pageCount) % pageCount;
-    } else {
-      pageNumber = Math.min(Math.max(0, pageNumber), pageCount - 1);
+  _updateChildIndex(props = this.props) {
+    const {cacheNum, isLoop} = props;
+    const pageCount = props.children.length;
+    const {currentPage} = this.state;
+    const nextCurPage = Math.max(0, Math.min(currentPage, pageCount - 1));
+    if (currentPage !== nextCurPage) {
+      this.setState({currentPage : nextCurPage})
     }
 
-    var moved = pageNumber !== this.state.currentPage;
+    const loop = isLoop && pageCount > 1;
+    this.childIndex = cacheNum;
+    if (loop && nextCurPage < cacheNum-1) {
+      this.childIndex = nextCurPage + 1
+    }
+    else if (!loop && nextCurPage < cacheNum) {
+      this.childIndex = nextCurPage
+    }
+    this.state.scrollValue.setValue(this.childIndex);
+  }
+
+  movePage(step, animated)
+  {
+    const pageCount = this._getPageCount()
+    const {cacheNum, isLoop} = this.props;
+    const loop = isLoop && pageCount > 1;
+    let nextCurPage = this.state.currentPage + step;
+
+    if (loop) {
+      nextCurPage = (nextCurPage + pageCount) % pageCount;
+    } else {
+      nextCurPage = Math.min(Math.max(0, nextCurPage), pageCount - 1);
+    }
+
+    var moved = nextCurPage !== this.state.currentPage;
     var scrollStep = (moved ? step : 0) + this.childIndex;
 
     this.fling = true;
 
-    const loop = this.props.isLoop && pageCount > 1;
-    var nextChildIdx = 0;
-    if (pageNumber > 0 || loop) {
-      nextChildIdx = 1;
+    let nextChildIdx = cacheNum;
+    if (loop && nextCurPage < cacheNum-1) {
+      nextChildIdx = nextCurPage + 1
+    }
+    else if (!loop && nextCurPage < cacheNum) {
+      nextChildIdx = nextCurPage
     }
 
     const finish = ()=>{
@@ -214,9 +218,9 @@ export default class ViewPager extends Component
       this.childIndex = nextChildIdx;
       this.state.scrollValue.setValue(nextChildIdx);
       this.setState({
-        currentPage: pageNumber,
+        currentPage: nextCurPage,
       });
-      moved && this.props.onChangePage && this.props.onChangePage(pageNumber);
+      moved && this.props.onChangePage && this.props.onChangePage(nextCurPage);
     }
     if (this.scrollViewIOS) {
       if (animated) {
@@ -228,21 +232,14 @@ export default class ViewPager extends Component
     }
     else if (this.viewPagerAndroid) {
       finish();
+      let viewPagerAndroidIndex = nextCurPage;
+      if (loop) {viewPagerAndroidIndex += cacheNum;}
+
       if (animated) {
-        if (loop) {
-          this.viewPagerAndroid.setPage(1+pageNumber);
-        }
-        else {
-          this.viewPagerAndroid.setPage(pageNumber);
-        }
+        this.viewPagerAndroid.setPage(viewPagerAndroidIndex);
       }
       else {
-        if (loop) {
-          this.viewPagerAndroid.setPageWithoutAnimation(1+pageNumber);
-        }
-        else {
-          this.viewPagerAndroid.setPageWithoutAnimation(pageNumber);
-        }
+        this.viewPagerAndroid.setPageWithoutAnimation(viewPagerAndroidIndex);
       }
     }
     else {
@@ -287,47 +284,46 @@ export default class ViewPager extends Component
       return this.renderViewPagerAndroid();
     }
 
-    var pageCount = this._getPageCount()
+    const pageCount = this._getPageCount();
+    const {cacheNum, isLoop} = this.props;
+    const loop = isLoop && pageCount > 1;
+    const {currentPage, scrollValue} = this.state;
 
     var bodyComponents = [];
 
-    var pagesNum = 0;
-    var hasLeft = false;
     var viewWidth = this.state.viewWidth;
 
     if (pageCount > 0 && viewWidth > 0) {
       // left page
-      if (this.state.currentPage > 0) {
-        bodyComponents.push(this._getPage(this.state.currentPage - 1));
-        pagesNum++;
-        hasLeft = true;
-      } else if (this.state.currentPage == 0 && this.props.isLoop && pageCount > 1) {
-        bodyComponents.push(this._getPage(pageCount - 1, true));
-        pagesNum++;
-        hasLeft = true;
+      for (let i=currentPage-cacheNum;i<currentPage;i++) {
+        if (i>=0) {
+          bodyComponents.push(this._getPage(i));
+        }
+        else if (loop && i==-1) {
+          bodyComponents.push(this._getPage(pageCount + i, true));
+        }
       }
 
       // center page
-      bodyComponents.push(this._getPage(this.state.currentPage));
-      pagesNum++;
+      bodyComponents.push(this._getPage(currentPage));
 
-      // right page
-      if (this.state.currentPage < pageCount - 1) {
-        bodyComponents.push(this._getPage(this.state.currentPage + 1));
-        pagesNum++;
-      } else if (this.state.currentPage == pageCount - 1 && this.props.isLoop && pageCount > 1) {
-        bodyComponents.push(this._getPage(0, true));
-        pagesNum++;
+      for (let i=currentPage+1; i<=currentPage + cacheNum; i++) {
+        if (i<pageCount) {
+          bodyComponents.push(this._getPage(i));
+        }
+        else if (loop && i==pageCount) {
+          bodyComponents.push(this._getPage(i-pageCount, true));
+        }
       }
     }
 
     var sceneContainerStyle = {
-      width: viewWidth * pagesNum,
+      width: viewWidth * bodyComponents.length,
       flex: 1,
       flexDirection: 'row'
     };
 
-    var translateX = this.state.scrollValue.interpolate({
+    var translateX = scrollValue.interpolate({
       inputRange: [0, 1], outputRange: [0, -viewWidth]
     });
 
@@ -353,8 +349,8 @@ export default class ViewPager extends Component
         {this.renderPageIndicator({
           goToPage: this.goToPage.bind(this),
           pageCount: pageCount,
-          activePage: this.state.currentPage,
-          scrollValue: this.state.scrollValue,
+          activePage: currentPage,
+          scrollValue: scrollValue,
           scrollOffset: this.childIndex,
         })}
       </View>
