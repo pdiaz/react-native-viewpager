@@ -121,13 +121,16 @@ var ViewPager = React.createClass({
   },
 
   componentDidMount() {
-    if (this.props.autoPlay) {
+    const pageCount = this.props.dataSource.getPageCount()
+    if (this.props.autoPlay && pageCount>1) {
       this._startAutoPlay();
     }
   },
 
   componentWillReceiveProps(nextProps) {
-    if (nextProps.autoPlay) {
+    const pageCount = nextProps.dataSource.getPageCount()
+
+    if (nextProps.autoPlay && pageCount>1) {
       this._startAutoPlay();
     } else {
       if (this._autoPlayer) {
@@ -136,20 +139,17 @@ var ViewPager = React.createClass({
       }
     }
 
-    if (nextProps.dataSource) {
-      var maxPage = nextProps.dataSource.getPageCount() - 1;
-      var constrainedPage = Math.max(0, Math.min(this.state.currentPage, maxPage));
-      this.setState({
-        currentPage: constrainedPage,
-      });
+    var maxPage = pageCount - 1;
+    var constrainedPage = Math.max(0, Math.min(this.state.currentPage, maxPage));
+    this.setState({
+      currentPage: constrainedPage,
+    });
 
-      if (!nextProps.isLoop) {
-        this.state.scrollValue.setValue(constrainedPage > 0 ? 1 : 0);
-      }
-
-      this.childIndex = Math.min(this.childIndex, constrainedPage);
+    if (!(nextProps.isLoop && pageCount>1)) {
+      this.state.scrollValue.setValue(constrainedPage > 0 ? 1 : 0);
     }
 
+    this.childIndex = Math.min(this.childIndex, constrainedPage);
   },
 
   _startAutoPlay() {
@@ -177,7 +177,7 @@ var ViewPager = React.createClass({
     var pageCount = this.props.dataSource.getPageCount();
     var pageNumber = this.state.currentPage + step;
 
-    if (this.props.isLoop) {
+    if (this.props.isLoop && pageCount>1) {
       pageNumber = (pageNumber + pageCount) % pageCount;
     } else {
       pageNumber = Math.min(Math.max(0, pageNumber), pageCount - 1);
@@ -189,7 +189,7 @@ var ViewPager = React.createClass({
     this.fling = true;
 
     var nextChildIdx = 0;
-    if (pageNumber > 0 || this.props.isLoop) {
+    if (pageNumber > 0 || (this.props.isLoop && pageCount>1)) {
       nextChildIdx = 1;
     }
 
@@ -258,7 +258,7 @@ var ViewPager = React.createClass({
         bodyComponents.push(this._getPage(this.state.currentPage - 1));
         pagesNum++;
         hasLeft = true;
-      } else if (this.state.currentPage == 0 && this.props.isLoop) {
+      } else if (this.state.currentPage == 0 && this.props.isLoop && dataSource.getPageCount()>1) {
         bodyComponents.push(this._getPage(pageIDs.length - 1, true));
         pagesNum++;
         hasLeft = true;
@@ -272,7 +272,7 @@ var ViewPager = React.createClass({
       if (this.state.currentPage < pageIDs.length - 1) {
         bodyComponents.push(this._getPage(this.state.currentPage + 1));
         pagesNum++;
-      } else if (this.state.currentPage == pageIDs.length - 1 && this.props.isLoop) {
+      } else if (this.state.currentPage == pageIDs.length - 1 && this.props.isLoop && dataSource.getPageCount()>1) {
         bodyComponents.push(this._getPage(0, true));
         pagesNum++;
       }
