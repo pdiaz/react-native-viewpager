@@ -201,7 +201,6 @@ export default class ViewPager extends Component
     }
 
     var moved = nextCurPage !== this.state.currentPage;
-    var scrollStep = (moved ? step : 0) + this.childIndex;
 
     this.fling = true;
 
@@ -243,7 +242,9 @@ export default class ViewPager extends Component
       }
     }
     else {
-      // LayoutAnimation.easeInEaseOut();
+      //var scrollStep = (moved ? step : 0) + this.childIndex;
+
+      //LayoutAnimation.easeInEaseOut();
       // finish()
       this.props.animation(this.state.scrollValue, scrollStep)
         .start((event) => {
@@ -410,12 +411,7 @@ export default class ViewPager extends Component
     const offsetX = e.nativeEvent.contentOffset.x;
     const curPage = Math.floor(offsetX/viewWidth + 0.5);
 
-    if (curPage < this.childIndex) {
-      this.movePage(-1);
-    }
-    else if (curPage > this.childIndex) {
-      this.movePage(1);
-    }
+    this.movePage(curPage-this.childIndex);
   }
 
   renderViewPagerAndroid() {
@@ -476,12 +472,7 @@ export default class ViewPager extends Component
       position = position-1;
     }
 
-    if (position > this.state.currentPage) {
-      this.movePage(1);
-    }
-    else if (position < this.state.currentPage) {
-      this.movePage(-1);
-    }
+    this.movePage(position-this.state.currentPage);
   }
 
 }
