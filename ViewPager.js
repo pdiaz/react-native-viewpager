@@ -41,7 +41,7 @@ const defaultProps = {
   isLoop: false,
   locked: false,
   currentPage: 0,
-  nativeRender : false,
+  nativeRender : true,
   cacheNum : 1,
   animation: function (animate, toValue) {
     return Animated.spring(animate,
@@ -215,7 +215,7 @@ export default class ViewPager extends Component
     const finish = ()=>{
       this.fling = false;
       this.childIndex = nextChildIdx;
-      this.state.scrollValue.setValue(nextChildIdx);
+      this.state.scrollValue.setValue(this.childIndex);
       this.setState({
         currentPage: nextCurPage,
       });
@@ -223,17 +223,33 @@ export default class ViewPager extends Component
     }
     if (this.scrollViewIOS) {
       if (animated) {
-        LayoutAnimation.easeInEaseOut();
-      }
-      finish();
-      this.scrollViewIOS.scrollTo(0,this.state.viewWidth * nextChildIdx, false);
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut, ()=>{
+          finish();
+          this.scrollViewIOS.scrollTo(0,this.state.viewWidth * nextChildIdx, false);
+        })
 
+        if (nextCurPage === 0) {
+          this.setState({
+            currentPage: pageCount,
+          });
+        }
+        else {
+          this.childIndex = nextChildIdx;
+          this.state.scrollValue.setValue(nextChildIdx);
+          this.setState({
+            currentPage: nextCurPage,
+          });
+        }
+      }
+      else {
+        finish();
+        this.scrollViewIOS.scrollTo(0,this.state.viewWidth * nextChildIdx, false);
+      }
     }
     else if (this.viewPagerAndroid) {
       finish();
       let viewPagerAndroidIndex = nextCurPage;
-      if (loop) {viewPagerAndroidIndex += cacheNum;}
-
+      if (loop) {viewPagerAndroidIndex += 1;}
       if (animated) {
         this.viewPagerAndroid.setPage(viewPagerAndroidIndex);
       }
@@ -255,7 +271,8 @@ export default class ViewPager extends Component
 
   getCurrentPage()
   {
-    return this.state.currentPage;
+    const count = this.props.children.length;
+    return this.state.currentPage % count;
   }
 
   renderPageIndicator(props)
@@ -276,7 +293,8 @@ export default class ViewPager extends Component
   _getPage(pageIdx, loop = false)
   {
     const {children} = this.props;
-    return React.cloneElement(children[pageIdx], {key: 'p_' + pageIdx + (loop ? '_1' : '')})
+    const index = pageIdx % children.length;
+    return React.cloneElement(children[index], {key: 'p_' + index + (loop ? '_1' : '')})
   }
 
   render()
@@ -306,7 +324,7 @@ export default class ViewPager extends Component
       }
 
       // center page
-      bodyComponents.push(this._getPage(currentPage));
+      bodyComponents.push(this._getPage(currentPage, currentPage===pageCount));
 
       for (let i=currentPage+1; i<=currentPage + cacheNum; i++) {
         if (i<pageCount) {
@@ -374,7 +392,7 @@ export default class ViewPager extends Component
   renderScrollViewIOS(bodyComponents, sceneContainerStyle) {
       const viewWidth = this.state.viewWidth;
       return(
-        <ScrollView
+        <ScrollView style = {{flex:1, width:viewWidth}}
           horizontal = {true}
           showsHorizontalScrollIndicator = {false}
           showsVerticalScrollIndicator = {false}
