@@ -242,7 +242,7 @@ export default class ViewPager extends Component
       }
     }
     else {
-      //var scrollStep = (moved ? step : 0) + this.childIndex;
+      var scrollStep = (moved ? step : 0) + this.childIndex;
 
       //LayoutAnimation.easeInEaseOut();
       // finish()
@@ -411,7 +411,9 @@ export default class ViewPager extends Component
     const offsetX = e.nativeEvent.contentOffset.x;
     const curPage = Math.floor(offsetX/viewWidth + 0.5);
 
-    this.movePage(curPage-this.childIndex);
+    if (curPage != this.childIndex) {
+      this.movePage(curPage-this.childIndex);
+    }
   }
 
   renderViewPagerAndroid() {
@@ -472,7 +474,9 @@ export default class ViewPager extends Component
       position = position-1;
     }
 
-    this.movePage(position-this.state.currentPage);
+    if(position != this.state.currentPage) {
+      this.movePage(position-this.state.currentPage);
+    }
   }
 
 }
