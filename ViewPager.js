@@ -65,7 +65,7 @@ export default class ViewPager extends Component
     }
   }
 
-  fling = false
+  fling = false;
 
   componentWillMount() {
 
