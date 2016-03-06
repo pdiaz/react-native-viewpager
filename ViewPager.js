@@ -3,9 +3,7 @@
 var React = require('react-native');
 var {
   Dimensions,
-  Text,
   View,
-  TouchableOpacity,
   PanResponder,
   Animated,
   PropTypes,
@@ -13,7 +11,6 @@ var {
   Component,
   ScrollView,
   ViewPagerAndroid,
-  LayoutAnimation,
   Platform
 } = React;
 
@@ -223,27 +220,18 @@ export default class ViewPager extends Component
     }
     if (this.scrollViewIOS) {
       if (animated) {
-        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut, ()=>{
-          finish();
-          this.scrollViewIOS.scrollTo(0,this.state.viewWidth * nextChildIdx, false);
-        })
-
-        if (nextCurPage === 0) {
-          this.setState({
-            currentPage: pageCount,
-          });
+        if (loop) {
+          this._scrollToIOS(this.childIndex + 1, true);
         }
         else {
-          this.childIndex = nextChildIdx;
-          this.state.scrollValue.setValue(nextChildIdx);
-          this.setState({
-            currentPage: nextCurPage,
-          });
+          if (this.childIndex !== nextChildIdx) {
+            this._scrollToIOS(nextChildIdx, true);
+          }
         }
       }
       else {
         finish();
-        this.scrollViewIOS.scrollTo(0,this.state.viewWidth * nextChildIdx, false);
+        this._scrollToIOS(nextChildIdx, false);
       }
     }
     else if (this.viewPagerAndroid) {
@@ -259,14 +247,15 @@ export default class ViewPager extends Component
     }
     else {
       var scrollStep = (moved ? step : 0) + this.childIndex;
-
-      //LayoutAnimation.easeInEaseOut();
-      // finish()
       this.props.animation(this.state.scrollValue, scrollStep)
         .start((event) => {
           finish()
         });
     }
+  }
+
+  _scrollToIOS(childIndex, animated) {
+    this.scrollViewIOS.scrollTo({x:this.state.viewWidth * childIndex,y:0, animated});
   }
 
   getCurrentPage()
