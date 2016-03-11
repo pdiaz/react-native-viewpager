@@ -119,6 +119,13 @@ export default class ViewPager extends Component
     }
   }
 
+  componentWillUnmount() {
+    if (this._autoPlayer) {
+      clearInterval(this._autoPlayer);
+      this._autoPlayer = null;
+    }
+  }
+
   componentWillReceiveProps(nextProps)
   {
     const pageCount = nextProps.children.length;
