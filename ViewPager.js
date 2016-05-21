@@ -9,7 +9,6 @@ import {
   View,
   PanResponder,
   Animated,
-  PropTypes,
   StyleSheet,
   ScrollView,
   ViewPagerAndroid,
