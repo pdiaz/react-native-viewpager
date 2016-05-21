@@ -1,18 +1,17 @@
 'use strict';
 
-var React = require('react-native');
-var {
+import React, { Component } from 'react';
+import {
   Dimensions,
   View,
   PanResponder,
   Animated,
   PropTypes,
   StyleSheet,
-  Component,
   ScrollView,
   ViewPagerAndroid,
   Platform
-} = React;
+} from 'react-native';
 
 var DefaultViewPageIndicator = require('./DefaultViewPageIndicator');
 var deviceWidth = Dimensions.get('window').width;
