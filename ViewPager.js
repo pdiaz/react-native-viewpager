@@ -1,6 +1,9 @@
 'use strict';
 
-import React, { Component } from 'react';
+import React, {
+  Component,
+  PropTypes,
+} from 'react';
 import {
   Dimensions,
   View,
